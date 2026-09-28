@@ -1,0 +1,23 @@
+# ⛔ 敏感/本地文件，永不进仓（成本/席位/密钥红线）
+watchlist.json
+持仓跟踪.md
+席位跟踪池.csv
+.workbuddy/
+data/
+daily/
+archive/
+*.db
+*.db-*
+*.key
+*.pub
+*.log
+__pycache__/
+*.pyc
+.venv/
+clientWidth
+dashboard_full.png
+publish/
+风格对比.html
+_ma*.js
+server/
+node_modules/

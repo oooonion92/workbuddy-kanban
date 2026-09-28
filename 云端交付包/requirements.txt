@@ -1,0 +1,4 @@
+akshare==1.18.81
+pandas>=2.0
+openpyxl>=3.1
+requests>=2.31

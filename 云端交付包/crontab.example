@@ -1,0 +1,22 @@
+# 复盘看板云端定时表（crontab -e 合并；⛔ 与已有 lhb 的 17:10 共存）
+# 时区：服务器若为 UTC，用 CRON_TZ 指定；BusyBox cron 不支持时改 UTC 换算（CST-9h）
+CRON_TZ=Asia/Shanghai
+
+# ── 16:10 池包采集（akshare 东财池接口，输出 /srv/data/shortterm）────────
+10 16 * * 1-5  cd /srv/kanban && PYTHON=/srv/kanban/.venv/bin/python DETAILS_DATA_DIR=/srv/data/details /srv/kanban/.venv/bin/python /srv/kanban/cloud/fetch/collect_short_term_data.py --output-dir /srv/data/shortterm >> /srv/log/shortterm.log 2>&1
+
+# ── 16:35 行情快照（指数/期指/宽度，--force 允许当日重跑）────────────────
+35 16 * * 1-5  cd /srv/kanban && KANBAN_ROOT=/srv/kanban SHORT_TERM_DATA_DIR=/srv/data/shortterm /srv/kanban/.venv/bin/python /srv/kanban/cloud/fetch/fetch_snapshot.py --date $(date +\%Y\%m\%d) --force >> /srv/log/fetch_snapshot.log 2>&1
+
+# ── 16:40 打分三连（⛔ 严格串行：sector_full → zt_quality → auction_baseline）
+#    注意：打分依赖 全部Ａ股{D}.xlsx（本轮后置）——后置启用前此行仅可对历史数据回测
+40 16 * * 1-5  cd /srv/kanban && KANBAN_ROOT=/srv/kanban SHORT_TERM_DATA_DIR=/srv/data/shortterm DETAILS_DATA_DIR=/srv/data/details bash cloud/run_scoring.sh $(date +\%Y\%m\%d) >> /srv/log/scoring.log 2>&1
+
+# ── 16:50 数据齐套通知 → 触发云端 WorkBuddy 节点⑤ automation（webhook 待接）
+50 16 * * 1-5  curl -s -X POST "$WB_WEBHOOK" -d "{\"date\":\"$(date +\%Y\%m\%d)\",\"stage\":\"scoring_done\"}" >> /srv/log/notify.log 2>&1
+
+# ── [后置] 全A明细采集两行（启用 collect_a_details.py 时取消注释）─────────
+#26 9  * * 1-5  cd /srv/kanban && DETAILS_DATA_DIR=/srv/data/details /srv/kanban/.venv/bin/python scripts/collect_a_details.py --mode auction --date $(date +\%Y\%m\%d) >> /srv/log/a_details.log 2>&1
+#20 16 * * 1-5  cd /srv/kanban && DETAILS_DATA_DIR=/srv/data/details /srv/kanban/.venv/bin/python scripts/collect_a_details.py --mode full    --date $(date +\%Y\%m\%d) >> /srv/log/a_details.log 2>&1
+
+# ── 17:10 龙虎榜（已有，范围外，勿动）────────────────────────────────────
